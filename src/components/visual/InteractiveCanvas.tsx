@@ -17,11 +17,18 @@ export function InteractiveCanvas() {
   const shapeType = useSessionStore((s) => s.shapeType);
   const phase = useSessionStore((s) => s.phase);
 
-  // Initialize renderer
+  // Track previous color/shape to detect mid-session changes
+  const prevColorRef = useRef<string | null>(null);
+  const prevShapeRef = useRef<string | null>(null);
+
+  // Initialize renderer (only on phase transitions)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !userColor || !shapeType) return;
     if (phase !== 'active' && phase !== 'starting') return;
+
+    // If renderer already running, skip full re-init (transitions handled below)
+    if (rendererRef.current) return;
 
     const palette = generatePalette(userColor);
     const dpr = window.devicePixelRatio || 1;
@@ -33,6 +40,8 @@ export function InteractiveCanvas() {
     renderer.setTrailRef(touchFieldRef.current.getTrail());
     renderer.start();
     rendererRef.current = renderer;
+    prevColorRef.current = userColor;
+    prevShapeRef.current = shapeType;
 
     // Touch field tick loop (decays disturbances)
     lastTickRef.current = performance.now();
@@ -55,11 +64,27 @@ export function InteractiveCanvas() {
     return () => {
       renderer.stop();
       rendererRef.current = null;
+      prevColorRef.current = null;
+      prevShapeRef.current = null;
       if (tickIdRef.current !== null) {
         cancelAnimationFrame(tickIdRef.current);
         tickIdRef.current = null;
       }
     };
+  }, [phase]); // Only depends on phase — color/shape transitions handled below
+
+  // Seamless color/shape transition on a running renderer
+  useEffect(() => {
+    if (!rendererRef.current || !userColor || !shapeType) return;
+    if (phase !== 'active') return;
+
+    // Skip if nothing changed
+    if (userColor === prevColorRef.current && shapeType === prevShapeRef.current) return;
+
+    const palette = generatePalette(userColor);
+    rendererRef.current.transitionTo(palette, shapeType);
+    prevColorRef.current = userColor;
+    prevShapeRef.current = shapeType;
   }, [userColor, shapeType, phase]);
 
   // Pointer events (work for both touch and mouse)

@@ -29,7 +29,7 @@ export function ColorPicker({ onSelect }: ColorPickerProps) {
             style={{ backgroundColor: hex }}
             aria-label={`Select ${label}`}
           >
-            <span className="text-white/80 text-lg font-medium drop-shadow-md">
+            <span className="text-white/90 text-lg font-bold drop-shadow-md">
               {label}
             </span>
           </button>

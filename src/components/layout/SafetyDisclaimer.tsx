@@ -5,7 +5,7 @@ export function SafetyDisclaimer() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-deep/95 p-6">
-      <div className="max-w-md w-full bg-navy-light rounded-2xl p-8 space-y-6 border border-lavender/15">
+      <div className="max-w-md w-full bg-navy-light rounded-2xl p-10 space-y-6 border border-lavender/15">
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-light text-lavender">
             Welcome
@@ -16,7 +16,7 @@ export function SafetyDisclaimer() {
         </div>
 
         <div className="space-y-3 text-soft-white/70 text-sm leading-relaxed">
-          <div className="flex gap-3 bg-navy/40 rounded-xl p-4">
+          <div className="flex gap-3 bg-navy/40 rounded-xl p-5">
             <span className="text-xl shrink-0">{'\u2728'}</span>
             <p>
               This app uses <strong className="text-soft-white/90">gentle light patterns</strong> and <strong className="text-soft-white/90">sound tones</strong>.
@@ -24,7 +24,7 @@ export function SafetyDisclaimer() {
             </p>
           </div>
 
-          <div className="flex gap-3 bg-navy/40 rounded-xl p-4">
+          <div className="flex gap-3 bg-navy/40 rounded-xl p-5">
             <span className="text-xl shrink-0">{'\uD83C\uDFA7'}</span>
             <p>
               Everything starts <strong className="text-soft-white/90">quiet and subtle</strong>.
@@ -33,7 +33,7 @@ export function SafetyDisclaimer() {
             </p>
           </div>
 
-          <div className="flex gap-3 bg-navy/40 rounded-xl p-4">
+          <div className="flex gap-3 bg-navy/40 rounded-xl p-5">
             <span className="text-xl shrink-0">{'\uD83D\uDC9C'}</span>
             <p>
               This is a <strong className="text-soft-white/90">personal exploration tool</strong>,

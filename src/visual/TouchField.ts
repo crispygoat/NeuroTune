@@ -1,7 +1,7 @@
 import type { TouchPoint, Disturbance } from '../types/visual';
 
 const MAX_DISTURBANCES = 20;
-const MAX_TRAIL_POINTS = 150;
+const MAX_TRAIL_POINTS = 100;
 
 export interface TrailPoint {
   x: number;
@@ -17,8 +17,22 @@ export class TouchField {
   private points: Map<number, TouchPoint> = new Map();
   private disturbances: Disturbance[] = [];
   private trail: TrailPoint[] = [];
+  // Activity tracking — dampens visuals during rapid input
+  private recentInputCount = 0;
+  private lastInputDecay = 0;
+
+  /** Returns 0-1 dampening factor: 1 = normal, lower = reduce intensity */
+  private getActivityDampen(): number {
+    // Ramp down when lots of input: 0-10 inputs = full, 10-40 = fading, 40+ = minimum
+    if (this.recentInputCount < 10) return 1;
+    if (this.recentInputCount > 40) return 0.2;
+    return 1 - (this.recentInputCount - 10) / 40;
+  }
 
   addTouch(id: number, x: number, y: number): void {
+    this.recentInputCount += 3; // taps count more
+    const dampen = this.getActivityDampen();
+
     this.points.set(id, {
       id, x, y,
       prevX: x, prevY: y,
@@ -27,19 +41,19 @@ export class TouchField {
       active: true,
     });
 
-    // Tap creates a strong radial burst
+    // Tap creates a radial burst (dampened)
     this.disturbances.push({
       x, y,
       vx: 0, vy: 0,
-      strength: 1.5,
-      radius: 100,
+      strength: 1.2 * dampen,
+      radius: 80,
       age: 0,
     });
 
     // Start trail at tap point
     this.trail.push({
       x, y, vx: 0, vy: 0,
-      age: 0, opacity: 0.8, width: 30,
+      age: 0, opacity: 0.5 * dampen, width: 25,
     });
 
     this.trimDisturbances();
@@ -48,6 +62,9 @@ export class TouchField {
   updateTouch(id: number, x: number, y: number): void {
     const point = this.points.get(id);
     if (!point) return;
+
+    this.recentInputCount += 1;
+    const dampen = this.getActivityDampen();
 
     const now = performance.now();
     const dt = Math.max(now - point.timestamp, 1);
@@ -62,23 +79,24 @@ export class TouchField {
 
     const speed = Math.sqrt(point.vx * point.vx + point.vy * point.vy);
 
-    // Add trail point for every move (visible gasoline streak)
+    // Trail point with dampened opacity
+    const baseOpacity = Math.min(0.3 + speed * 0.04, 0.55);
     this.trail.push({
       x, y,
       vx: point.vx, vy: point.vy,
       age: 0,
-      opacity: Math.min(0.6 + speed * 0.05, 0.9),
-      width: 15 + speed * 8,
+      opacity: baseOpacity * dampen,
+      width: 12 + speed * 6,
     });
 
-    // Swipe creates directional disturbances
+    // Swipe creates directional disturbances (dampened)
     if (speed > 0.3) {
       this.disturbances.push({
         x, y,
         vx: point.vx,
         vy: point.vy,
-        strength: Math.min(speed * 0.4, 1.5),
-        radius: 60 + speed * 15,
+        strength: Math.min(speed * 0.3, 1.2) * dampen,
+        radius: 50 + speed * 12,
         age: 0,
       });
       this.trimDisturbances();
@@ -95,6 +113,13 @@ export class TouchField {
   }
 
   tick(deltaMs: number): void {
+    // Decay activity counter (recovers ~5 per frame at 60fps)
+    this.lastInputDecay += deltaMs;
+    if (this.lastInputDecay > 16) {
+      this.recentInputCount = Math.max(0, this.recentInputCount - 3);
+      this.lastInputDecay = 0;
+    }
+
     // Decay disturbances
     for (let i = this.disturbances.length - 1; i >= 0; i--) {
       const d = this.disturbances[i];

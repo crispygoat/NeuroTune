@@ -20,7 +20,7 @@ export const SAFETY = {
   CROSSFADE_MS: 2000,
 
   // Volume limits — start gentle, let user increase
-  MAX_MASTER_VOLUME: 0.8,
+  MAX_MASTER_VOLUME: 1.0,
   DEFAULT_MASTER_VOLUME: 0.25,
   DEFAULT_TONE_VOLUME: 0.3,
   DEFAULT_NATURE_VOLUME: 0.3,

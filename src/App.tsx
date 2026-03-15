@@ -14,6 +14,8 @@ import { SessionTimer } from './components/session/SessionTimer';
 import { SessionControls } from './components/session/SessionControls';
 import { InteractiveCanvas } from './components/visual/InteractiveCanvas';
 import { FlickerOverlay } from './components/visual/FlickerOverlay';
+import { ColorSwitcher } from './components/session/ColorSwitcher';
+import { FloatingColorOrbs } from './components/session/FloatingColorOrbs';
 import { PostSessionFeedback } from './components/feedback/PostSessionFeedback';
 import type { UserColor, ShapeType } from './types/session';
 
@@ -51,6 +53,23 @@ function App() {
     await startSession();
   }, [setShapeType, startSession]);
 
+  // ColorSwitcher (top-left menu) — stops session, lets user pick a new shape
+  const handleColorSwitch = useCallback((color: UserColor) => {
+    emergencyStop();
+    setUserColor(color);
+    setPhase('shapePick');
+  }, [emergencyStop, setUserColor, setPhase]);
+
+  // Floating orbs — seamless in-session transition, random shape, no interruption
+  const SHAPES: ShapeType[] = ['mandala', 'triangle', 'hexagon', 'circle'];
+  const handleOrbSwitch = useCallback((color: UserColor) => {
+    const randomShape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+    setUserColor(color);
+    setShapeType(randomShape);
+    // Play a chime to acknowledge the switch
+    audioEngine.playTouchChime();
+  }, [setUserColor, setShapeType]);
+
   // --- Safety disclaimer gate ---
   if (!disclaimerAccepted) {
     return (
@@ -78,6 +97,8 @@ function App() {
           <FlickerOverlay flickerRef={flickerRef} />
         </div>
         <SessionTimer />
+        {userColor && <FloatingColorOrbs currentColor={userColor} onSwitch={handleOrbSwitch} />}
+        {userColor && <ColorSwitcher currentColor={userColor} onSwitch={handleColorSwitch} />}
         <SafeExitButton onExit={emergencyStop} />
         <SessionControls />
       </AppShell>
