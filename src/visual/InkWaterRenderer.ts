@@ -1,9 +1,11 @@
 import type { BreathCycle, InkBlobState, Disturbance } from '../types/visual';
 import type { ShapeType } from '../types/session';
+import type { HSLColor } from '../types/mandala';
 import type { ColorPalette } from './ColorPalette';
 import type { TrailPoint } from './TouchField';
 import { getBreathState } from './BreathingCycle';
 import { GeometricShape } from './GeometricShape';
+import { MandalaColoring } from './MandalaColoring';
 import { createBlob, updateBlob, shouldRespawn, renderBlob } from './InkParticle';
 
 const BLOB_COUNT = 12;
@@ -32,6 +34,7 @@ export class InkWaterRenderer {
   private lastFrameTime = 0;
   private trailRef: TrailPoint[] = [];
   private ripples: Ripple[] = [];
+  private mandalaColoring: MandalaColoring | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -85,12 +88,55 @@ export class InkWaterRenderer {
     }
   }
 
+  setBreathCycle(cycle: BreathCycle): void {
+    this.breathCycle = cycle;
+  }
+
   setIntensity(intensity: number): void {
     this.intensity = Math.max(0, Math.min(1, intensity));
   }
 
   setTrailRef(trail: TrailPoint[]): void {
     this.trailRef = trail;
+  }
+
+  // --- Mandala coloring API ---
+
+  enableMandalaColoring(): void {
+    this.mandalaColoring = new MandalaColoring();
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+    this.mandalaColoring.generate(w / 2, h / 2, Math.min(w, h) * 0.35);
+  }
+
+  disableMandalaColoring(): void {
+    this.mandalaColoring?.setPaintingEnabled(false);
+  }
+
+  setMandalaColor(color: HSLColor | null): void {
+    this.mandalaColoring?.setActiveColor(color);
+  }
+
+  setMandalaDarkenFactor(factor: number): void {
+    this.mandalaColoring?.setFillDarkenFactor(factor);
+  }
+
+  setMandalaOutlineOpacity(opacity: number): void {
+    this.mandalaColoring?.setOutlineOpacity(opacity);
+  }
+
+  /** Hit-test and fill a region. Returns true if a region was painted/erased. */
+  handleMandalaTap(x: number, y: number): boolean {
+    if (!this.mandalaColoring || !this.mandalaColoring.isPaintingEnabled()) return false;
+    const idx = this.mandalaColoring.hitTest(this.ctx, x, y);
+    if (idx < 0) return false;
+
+    if (this.mandalaColoring.getActiveColor() === null) {
+      this.mandalaColoring.clearRegion(idx);
+    } else {
+      this.mandalaColoring.fillRegion(idx);
+    }
+    return true;
   }
 
   start(): void {
@@ -200,6 +246,10 @@ export class InkWaterRenderer {
     if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
       this.canvas.width = targetW;
       this.canvas.height = targetH;
+      // Regenerate mandala paths for new size (preserves fill state)
+      if (this.mandalaColoring) {
+        this.mandalaColoring.generate(targetW / 2, targetH / 2, Math.min(targetW, targetH) * 0.35);
+      }
     }
 
     const w = this.canvas.width;
@@ -220,6 +270,11 @@ export class InkWaterRenderer {
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
     ctx.globalAlpha = 1;
+
+    // ===== Render mandala coloring (below trails and blobs) =====
+    if (this.mandalaColoring) {
+      this.mandalaColoring.render(ctx);
+    }
 
     // ===== Render touch trails (gasoline-on-water effect) =====
     this.renderTrails(ctx, elapsedMs);

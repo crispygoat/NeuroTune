@@ -1,5 +1,5 @@
 import type { BrainwaveState, TherapyMode } from '../types/session';
-import type { FrequencyBand, PadConfig } from '../types/audio';
+import type { FrequencyBand, PadConfig, SleepPhaseConfig } from '../types/audio';
 import type { BreathCycle, FlickerConfig } from '../types/visual';
 
 export const FREQUENCY_BANDS: Record<BrainwaveState, FrequencyBand> = {
@@ -153,4 +153,99 @@ export const THERAPY_MODES: Record<TherapyMode, TherapyModeConfig> = {
     flickerConfig: { enabled: false, frequencyHz: 0, warmTint: '', coolTint: '', opacity: 0 },
     breathCycle: { inhale: 5, hold: 3, exhale: 8, rest: 2 }, // 18s cycle, long exhale for calm
   },
+  'sleep': {
+    label: 'Sleep',
+    subtitle: 'Progressive Wind-Down for Deep Sleep',
+    // Phase 1 config as the initial pad/breath (overridden by SLEEP_PHASES during session)
+    padConfig: {
+      padFreqs: [130.81, 155.56, 196.00], // C3, Eb3, G3 — C minor triad (contemplative)
+      subFreq: 32.70,                      // C1 — ultra-deep sub-bass
+      binauralCarrier: 150,                // low/warm carrier
+      binauralBeatHz: 6,                   // 6 Hz theta for initial relaxation
+      filterCutoff: 500,                   // dark, enveloping
+      filterLfoHz: 0.04,                   // ~25s cycle
+      lfoDepth: 150,                       // gentle sweep
+      padGain: 0.06,
+      subGain: 0.05,
+      binGain: 0.02,
+    },
+    flickerConfig: { enabled: false, frequencyHz: 0, warmTint: '', coolTint: '', opacity: 0 },
+    breathCycle: { inhale: 5, hold: 2, exhale: 6, rest: 2 }, // 15s cycle — Phase 1
+  },
+};
+
+// --- Sleep program progressive phase configs ---
+
+export const SLEEP_PHASES: SleepPhaseConfig[] = [
+  // Phase 1: Calm (0% → 40%) — theta relaxation, user's color
+  {
+    startPercent: 0,
+    endPercent: 0.4,
+    padConfig: {
+      padFreqs: [130.81, 155.56, 196.00], // C3, Eb3, G3 — C minor
+      subFreq: 32.70,                      // C1
+      binauralCarrier: 150,
+      binauralBeatHz: 6,                   // 6 Hz theta
+      filterCutoff: 500,
+      filterLfoHz: 0.04,
+      lfoDepth: 150,
+      padGain: 0.06,
+      subGain: 0.05,
+      binGain: 0.02,
+    },
+    breathCycle: { inhale: 5, hold: 2, exhale: 6, rest: 2 }, // 15s
+  },
+  // Phase 2: Wind-Down (40% → 75%) — low-theta, darker chord, colors shift to indigo
+  {
+    startPercent: 0.4,
+    endPercent: 0.75,
+    padConfig: {
+      padFreqs: [130.81, 155.56, 207.65], // C3, Eb3, Ab3 — darker, suspended
+      subFreq: 32.70,                      // C1
+      binauralCarrier: 120,
+      binauralBeatHz: 4,                   // 4 Hz low-theta
+      filterCutoff: 350,                   // darker
+      filterLfoHz: 0.03,
+      lfoDepth: 100,
+      padGain: 0.05,
+      subGain: 0.05,
+      binGain: 0.018,
+    },
+    breathCycle: { inhale: 6, hold: 3, exhale: 8, rest: 3 }, // 20s
+  },
+  // Phase 3: Deep Sleep (75% → 100%) — delta, open fifth, near-black
+  {
+    startPercent: 0.75,
+    endPercent: 1.0,
+    padConfig: {
+      padFreqs: [65.41, 98.00],           // C2, G2 — open fifth, minimal
+      subFreq: 32.70,                      // C1 — dominant now
+      binauralCarrier: 100,
+      binauralBeatHz: 2,                   // 2 Hz delta
+      filterCutoff: 250,                   // very dark
+      filterLfoHz: 0.02,
+      lfoDepth: 80,
+      padGain: 0.04,
+      subGain: 0.06,
+      binGain: 0.015,
+    },
+    breathCycle: { inhale: 7, hold: 4, exhale: 10, rest: 4 }, // 25s
+  },
+];
+
+// Text guidance cues for sleep mode (percent = % of total session)
+export const SLEEP_GUIDANCE: { percent: number; text: string; durationMs: number }[] = [
+  { percent: 0.40, text: 'Close your eyes...', durationMs: 10000 },
+  { percent: 0.45, text: 'Breathe in deeply... and slowly out', durationMs: 12000 },
+  { percent: 0.55, text: 'Let your body feel heavy and warm', durationMs: 10000 },
+  { percent: 0.65, text: 'Focus on your breath... nothing else', durationMs: 10000 },
+  { percent: 0.76, text: 'Let go...', durationMs: 8000 },
+];
+
+// Sleep palette progression waypoints (hue, saturation%, lightness%)
+export const SLEEP_PALETTE_TARGETS = {
+  // Phase 2 target — deep indigo
+  windDown: { hue: 260, saturation: 35, lightness: 15 },
+  // Phase 3 target — near-black indigo
+  deepSleep: { hue: 270, saturation: 25, lightness: 8 },
 };

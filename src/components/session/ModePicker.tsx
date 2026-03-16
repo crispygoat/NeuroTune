@@ -8,6 +8,7 @@ interface ModePickerProps {
 const MODES: { mode: TherapyMode; accent: string }[] = [
   { mode: '40hz',  accent: '#f0abfc' }, // soft purple (gamma)
   { mode: '528hz', accent: '#5eead4' }, // soft teal (calm)
+  { mode: 'sleep', accent: '#6366f1' }, // deep indigo (sleep)
 ];
 
 export function ModePicker({ onSelect }: ModePickerProps) {

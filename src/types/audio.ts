@@ -1,3 +1,5 @@
+import type { BreathCycle } from './visual';
+
 export type ToneMode = 'binaural' | 'isochronic';
 
 export interface FrequencyBand {
@@ -8,6 +10,13 @@ export interface FrequencyBand {
   carrierHz: number;
   description: string;   // short feeling-based sentence
   label: string;         // longer explanation (shown on hover/detail)
+}
+
+export interface SleepPhaseConfig {
+  padConfig: PadConfig;
+  breathCycle: BreathCycle;
+  startPercent: number;   // 0-1 when this phase begins
+  endPercent: number;     // 0-1 when this phase ends
 }
 
 export interface PadConfig {

@@ -3,7 +3,7 @@ import { useSessionStore } from '../store/sessionStore';
 import { useAudioStore } from '../store/audioStore';
 import { useLogStore } from '../store/logStore';
 import { audioEngine } from '../audio/AudioEngine';
-import { THERAPY_MODES } from '../constants/frequencies';
+import { THERAPY_MODES, SLEEP_PHASES } from '../constants/frequencies';
 import { SAFETY } from '../constants/safety';
 import type { SessionLogEntry, FeedbackRating } from '../types/session';
 import { SpectralFlicker } from '../visual/SpectralFlicker';
@@ -52,6 +52,8 @@ export function useSession() {
     const durationMs = session.durationMinutes * 60 * 1000;
     const tickStart = performance.now();
     let fadeStarted = false;
+    const isSleep = session.therapyMode === 'sleep';
+    let currentSleepPhase = 0;
 
     const tick = () => {
       const elapsed = performance.now() - tickStart;
@@ -62,12 +64,41 @@ export function useSession() {
         return;
       }
 
-      // Fade out in the last 5 seconds
-      const remaining = durationMs - elapsed;
-      if (!fadeStarted && remaining <= SAFETY.FADE_OUT_MS) {
-        fadeStarted = true;
-        audioEngine.stopAmbientPad(SAFETY.FADE_OUT_MS);
-        audioEngine.stopWindChimes();
+      // Sleep mode: crossfade audio at phase boundaries
+      if (isSleep) {
+        const progress = elapsed / durationMs;
+        const newPhaseIdx = SLEEP_PHASES.findIndex(
+          (p) => progress >= p.startPercent && progress < p.endPercent
+        );
+        const phaseIdx = newPhaseIdx >= 0 ? newPhaseIdx : SLEEP_PHASES.length - 1;
+
+        if (phaseIdx !== currentSleepPhase) {
+          currentSleepPhase = phaseIdx;
+          audioEngine.crossfadePad(audio.toneVolume, SLEEP_PHASES[phaseIdx].padConfig, 6000);
+
+          // Disable chimes in phase 3
+          if (phaseIdx >= 2) {
+            audioEngine.stopWindChimes();
+          }
+        }
+
+        // Final 30 seconds: gentle volume fade-down
+        const remaining = durationMs - elapsed;
+        if (!fadeStarted && remaining <= 30000) {
+          fadeStarted = true;
+          audioEngine.stopAmbientPad(30000);
+          audioEngine.stopWindChimes();
+        }
+      }
+
+      // Non-sleep: fade out in the last 5 seconds
+      if (!isSleep) {
+        const remaining = durationMs - elapsed;
+        if (!fadeStarted && remaining <= SAFETY.FADE_OUT_MS) {
+          fadeStarted = true;
+          audioEngine.stopAmbientPad(SAFETY.FADE_OUT_MS);
+          audioEngine.stopWindChimes();
+        }
       }
 
       timerRef.current = requestAnimationFrame(tick);

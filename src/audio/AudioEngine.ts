@@ -58,6 +58,26 @@ class AudioEngine {
     this.ambientPad?.stop(fadeMs);
   }
 
+  /**
+   * Crossfade the ambient pad to a new config.
+   * Fades out the old pad while fading in the new one for a smooth blend.
+   */
+  crossfadePad(volume: number, newConfig: PadConfig, fadeMs: number = 4000): void {
+    if (!this.ctx || !this.toneGain) return;
+
+    // Fade out current pad
+    this.ambientPad?.stop(fadeMs);
+
+    // Create a fresh pad node for the new config, start it after a brief overlap
+    const newPad = new AmbientPadNode(this.ctx, this.toneGain);
+    const overlapDelay = fadeMs * 0.4;
+
+    setTimeout(() => {
+      newPad.start(volume, newConfig);
+      this.ambientPad = newPad;
+    }, overlapDelay);
+  }
+
   startWindChimes(volume: number): void {
     this.windChimes?.setVolume(volume);
     this.windChimes?.startAmbient();

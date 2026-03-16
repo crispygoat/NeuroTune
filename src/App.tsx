@@ -18,14 +18,18 @@ import { FlickerOverlay } from './components/visual/FlickerOverlay';
 import { ColorSwitcher } from './components/session/ColorSwitcher';
 import { FloatingColorOrbs } from './components/session/FloatingColorOrbs';
 import { PostSessionFeedback } from './components/feedback/PostSessionFeedback';
-import type { UserColor, ShapeType, TherapyMode } from './types/session';
+import { SleepGuidance } from './components/session/SleepGuidance';
+import { SleepDurationPicker } from './components/session/SleepDurationPicker';
+import type { UserColor, ShapeType, SessionDuration, TherapyMode } from './types/session';
 
 function App() {
   const phase = useSessionStore((s) => s.phase);
   const userColor = useSessionStore((s) => s.userColor);
+  const therapyMode = useSessionStore((s) => s.therapyMode);
   const setTherapyMode = useSessionStore((s) => s.setTherapyMode);
   const setUserColor = useSessionStore((s) => s.setUserColor);
   const setShapeType = useSessionStore((s) => s.setShapeType);
+  const setDuration = useSessionStore((s) => s.setDuration);
   const setPhase = useSessionStore((s) => s.setPhase);
   const disclaimerAccepted = useLogStore((s) => s.disclaimerAccepted);
 
@@ -50,10 +54,17 @@ function App() {
   // Color pick initializes AudioContext (iPad Safari gesture requirement)
   const handleColorSelected = useCallback(async (color: UserColor) => {
     setUserColor(color);
-    setPhase('shapePick');
+    // Sleep mode needs duration pick before shape pick
+    setPhase(therapyMode === 'sleep' ? 'durationPick' : 'shapePick');
     // Initialize audio early so it's ready when session starts
     await audioEngine.initialize();
-  }, [setUserColor, setPhase]);
+  }, [setUserColor, setPhase, therapyMode]);
+
+  // Sleep duration selected — proceed to shape pick
+  const handleDurationSelected = useCallback((minutes: SessionDuration) => {
+    setDuration(minutes);
+    setPhase('shapePick');
+  }, [setDuration, setPhase]);
 
   // Shape pick starts the session immediately
   const handleShapeSelected = useCallback(async (shape: ShapeType) => {
@@ -105,10 +116,20 @@ function App() {
           <FlickerOverlay flickerRef={flickerRef} />
         </div>
         <SessionTimer />
+        {therapyMode === 'sleep' && <SleepGuidance />}
         {userColor && <FloatingColorOrbs currentColor={userColor} onSwitch={handleOrbSwitch} />}
         {userColor && <ColorSwitcher currentColor={userColor} onSwitch={handleColorSwitch} />}
         <SafeExitButton onExit={emergencyStop} />
         <SessionControls />
+      </AppShell>
+    );
+  }
+
+  // --- Duration picker (sleep mode only) ---
+  if (phase === 'durationPick') {
+    return (
+      <AppShell>
+        <SleepDurationPicker onSelect={handleDurationSelected} />
       </AppShell>
     );
   }
@@ -126,7 +147,7 @@ function App() {
   if (phase === 'colorPick') {
     return (
       <AppShell>
-        <ColorPicker onSelect={handleColorSelected} />
+        <ColorPicker onSelect={handleColorSelected} therapyMode={therapyMode} />
       </AppShell>
     );
   }
