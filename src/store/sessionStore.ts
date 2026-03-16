@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import type { UserColor, ShapeType, SessionPhase, SessionDuration } from '../types/session';
+import type { UserColor, ShapeType, SessionPhase, SessionDuration, TherapyMode } from '../types/session';
 import type { ToneMode } from '../types/audio';
 
 interface SessionState {
+  therapyMode: TherapyMode;
   userColor: UserColor | null;
   shapeType: ShapeType | null;
   durationMinutes: SessionDuration;
@@ -11,6 +12,7 @@ interface SessionState {
   toneMode: ToneMode;
   headphoneOverride: boolean | null;
 
+  setTherapyMode: (mode: TherapyMode) => void;
   setUserColor: (color: UserColor) => void;
   setShapeType: (shape: ShapeType) => void;
   setDuration: (minutes: SessionDuration) => void;
@@ -22,10 +24,11 @@ interface SessionState {
 }
 
 const initialState = {
+  therapyMode: '40hz' as TherapyMode,
   userColor: null as UserColor | null,
   shapeType: null as ShapeType | null,
   durationMinutes: 10 as SessionDuration,
-  phase: 'colorPick' as SessionPhase,
+  phase: 'modePick' as SessionPhase,
   elapsedMs: 0,
   toneMode: 'isochronic' as ToneMode,
   headphoneOverride: null as boolean | null,
@@ -34,6 +37,7 @@ const initialState = {
 export const useSessionStore = create<SessionState>((set) => ({
   ...initialState,
 
+  setTherapyMode: (therapyMode) => set({ therapyMode }),
   setUserColor: (userColor) => set({ userColor }),
   setShapeType: (shapeType) => set({ shapeType }),
   setDuration: (durationMinutes) => set({ durationMinutes }),

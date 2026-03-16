@@ -1,5 +1,5 @@
-import type { BrainwaveState } from '../types/session';
-import type { FrequencyBand } from '../types/audio';
+import type { BrainwaveState, TherapyMode } from '../types/session';
+import type { FrequencyBand, PadConfig } from '../types/audio';
 import type { BreathCycle, FlickerConfig } from '../types/visual';
 
 export const FREQUENCY_BANDS: Record<BrainwaveState, FrequencyBand> = {
@@ -105,3 +105,52 @@ export const CHIME_FREQUENCIES = [
   1174.66, // D6
   1318.51, // E6
 ];
+
+// --- Therapy mode configurations ---
+
+interface TherapyModeConfig {
+  padConfig: PadConfig;
+  flickerConfig: FlickerConfig;
+  breathCycle: BreathCycle;
+  label: string;
+  subtitle: string;
+}
+
+export const THERAPY_MODES: Record<TherapyMode, TherapyModeConfig> = {
+  '40hz': {
+    label: '40 Hz',
+    subtitle: 'Sound Therapy for Attention & Neuroplasticity',
+    padConfig: {
+      padFreqs: [130.81, 164.81, 196.00], // C3, E3, G3
+      subFreq: 65.41,                      // C2
+      binauralCarrier: 200,                // low carrier for warmth
+      binauralBeatHz: 40,                  // 40 Hz gamma
+      filterCutoff: 800,
+      filterLfoHz: 0.08,                   // ~12s cycle
+      lfoDepth: 300,
+      padGain: 0.08,
+      subGain: 0.06,
+      binGain: 0.03,
+    },
+    flickerConfig: FLICKER_CONFIGS.gamma,  // 40 Hz, 2% opacity
+    breathCycle: { inhale: 4, hold: 2, exhale: 5, rest: 1 }, // 12s cycle
+  },
+  '528hz': {
+    label: '528 Hz',
+    subtitle: 'Sound Therapy for Stress Reduction',
+    padConfig: {
+      padFreqs: [220.00, 277.18, 329.63], // A3, C#4, E4 — warm A major triad, low register
+      subFreq: 55.00,                      // A1 — deep, grounding sub-bass
+      binauralCarrier: 528,                // 528 Hz Solfeggio embedded in binaural layer
+      binauralBeatHz: 6,                   // 6 Hz theta for deep relaxation
+      filterCutoff: 600,                   // dark, muffled — cozy warmth
+      filterLfoHz: 0.04,                   // ~25s cycle — very slow, calming movement
+      lfoDepth: 200,                       // gentle sweep, no dramatic changes
+      padGain: 0.06,                       // softer voices
+      subGain: 0.05,
+      binGain: 0.015,                      // near-subliminal 528 Hz carrier
+    },
+    flickerConfig: { enabled: false, frequencyHz: 0, warmTint: '', coolTint: '', opacity: 0 },
+    breathCycle: { inhale: 5, hold: 3, exhale: 8, rest: 2 }, // 18s cycle, long exhale for calm
+  },
+};

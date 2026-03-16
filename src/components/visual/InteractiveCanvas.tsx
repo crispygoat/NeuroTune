@@ -3,7 +3,7 @@ import { useSessionStore } from '../../store/sessionStore';
 import { InkWaterRenderer } from '../../visual/InkWaterRenderer';
 import { TouchField } from '../../visual/TouchField';
 import { generatePalette } from '../../visual/ColorPalette';
-import { SESSION_BREATH_CYCLE } from '../../constants/frequencies';
+import { THERAPY_MODES } from '../../constants/frequencies';
 import { audioEngine } from '../../audio/AudioEngine';
 
 export function InteractiveCanvas() {
@@ -16,6 +16,7 @@ export function InteractiveCanvas() {
   const userColor = useSessionStore((s) => s.userColor);
   const shapeType = useSessionStore((s) => s.shapeType);
   const phase = useSessionStore((s) => s.phase);
+  const therapyMode = useSessionStore((s) => s.therapyMode);
 
   // Track previous color/shape to detect mid-session changes
   const prevColorRef = useRef<string | null>(null);
@@ -36,7 +37,7 @@ export function InteractiveCanvas() {
     canvas.height = Math.floor(canvas.clientHeight * dpr);
 
     const renderer = new InkWaterRenderer(canvas);
-    renderer.configure(palette, shapeType, SESSION_BREATH_CYCLE);
+    renderer.configure(palette, shapeType, THERAPY_MODES[therapyMode].breathCycle);
     renderer.setTrailRef(touchFieldRef.current.getTrail());
     renderer.start();
     rendererRef.current = renderer;

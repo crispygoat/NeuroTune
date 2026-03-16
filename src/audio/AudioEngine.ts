@@ -3,6 +3,7 @@ import { NatureSoundPlayer } from './NatureSoundPlayer';
 import { WindChimePlayer } from './WindChimePlayer';
 import { fadeOut } from './FadeController';
 import { SAFETY } from '../constants/safety';
+import type { PadConfig } from '../types/audio';
 
 class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -49,8 +50,8 @@ class AudioEngine {
     document.addEventListener('visibilitychange', this.visibilityHandler);
   }
 
-  startAmbientPad(volume: number): void {
-    this.ambientPad?.start(volume);
+  startAmbientPad(volume: number, config: PadConfig): void {
+    this.ambientPad?.start(volume, config);
   }
 
   stopAmbientPad(fadeMs?: number): void {

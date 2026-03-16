@@ -7,6 +7,7 @@ import { audioEngine } from './audio/AudioEngine';
 import { generatePalette } from './visual/ColorPalette';
 import { AppShell } from './components/layout/AppShell';
 import { SafetyDisclaimer } from './components/layout/SafetyDisclaimer';
+import { ModePicker } from './components/session/ModePicker';
 import { ColorPicker } from './components/session/ColorPicker';
 import { ShapePicker } from './components/session/ShapePicker';
 import { SafeExitButton } from './components/session/SafeExitButton';
@@ -17,11 +18,12 @@ import { FlickerOverlay } from './components/visual/FlickerOverlay';
 import { ColorSwitcher } from './components/session/ColorSwitcher';
 import { FloatingColorOrbs } from './components/session/FloatingColorOrbs';
 import { PostSessionFeedback } from './components/feedback/PostSessionFeedback';
-import type { UserColor, ShapeType } from './types/session';
+import type { UserColor, ShapeType, TherapyMode } from './types/session';
 
 function App() {
   const phase = useSessionStore((s) => s.phase);
   const userColor = useSessionStore((s) => s.userColor);
+  const setTherapyMode = useSessionStore((s) => s.setTherapyMode);
   const setUserColor = useSessionStore((s) => s.setUserColor);
   const setShapeType = useSessionStore((s) => s.setShapeType);
   const setPhase = useSessionStore((s) => s.setPhase);
@@ -38,6 +40,12 @@ function App() {
   useWakeLock(phase === 'active' || phase === 'starting');
 
   const palette = userColor ? generatePalette(userColor) : null;
+
+  // Mode pick — select 40Hz or 528Hz therapy
+  const handleModeSelected = useCallback((mode: TherapyMode) => {
+    setTherapyMode(mode);
+    setPhase('colorPick');
+  }, [setTherapyMode, setPhase]);
 
   // Color pick initializes AudioContext (iPad Safari gesture requirement)
   const handleColorSelected = useCallback(async (color: UserColor) => {
@@ -114,10 +122,19 @@ function App() {
     );
   }
 
-  // --- Color picker (default screen) ---
+  // --- Color picker ---
+  if (phase === 'colorPick') {
+    return (
+      <AppShell>
+        <ColorPicker onSelect={handleColorSelected} />
+      </AppShell>
+    );
+  }
+
+  // --- Mode picker (default screen) ---
   return (
     <AppShell>
-      <ColorPicker onSelect={handleColorSelected} />
+      <ModePicker onSelect={handleModeSelected} />
     </AppShell>
   );
 }

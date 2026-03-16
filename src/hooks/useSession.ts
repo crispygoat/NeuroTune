@@ -3,7 +3,7 @@ import { useSessionStore } from '../store/sessionStore';
 import { useAudioStore } from '../store/audioStore';
 import { useLogStore } from '../store/logStore';
 import { audioEngine } from '../audio/AudioEngine';
-import { SESSION_FLICKER_CONFIG } from '../constants/frequencies';
+import { THERAPY_MODES } from '../constants/frequencies';
 import { SAFETY } from '../constants/safety';
 import type { SessionLogEntry, FeedbackRating } from '../types/session';
 import { SpectralFlicker } from '../visual/SpectralFlicker';
@@ -26,13 +26,16 @@ export function useSession() {
     await audioEngine.initialize();
     audio.setAudioReady(true);
 
-    // Configure spectral flicker (always 40Hz gamma)
+    // Get mode-specific config
+    const modeConfig = THERAPY_MODES[session.therapyMode];
+
+    // Configure spectral flicker (mode-dependent)
     if (flickerRef.current) {
-      flickerRef.current.start(SESSION_FLICKER_CONFIG);
+      flickerRef.current.start(modeConfig.flickerConfig);
     }
 
-    // Start ambient pad with embedded 40Hz entrainment
-    audioEngine.startAmbientPad(audio.toneVolume);
+    // Start ambient pad with mode-specific frequencies
+    audioEngine.startAmbientPad(audio.toneVolume, modeConfig.padConfig);
     audioEngine.setMasterVolume(audio.masterVolume);
 
     // Start ambient wind chimes
@@ -71,7 +74,7 @@ export function useSession() {
     };
 
     timerRef.current = requestAnimationFrame(tick);
-  }, [session.durationMinutes, audio.toneVolume, audio.masterVolume, audio.chimeVolume]);
+  }, [session.durationMinutes, session.therapyMode, audio.toneVolume, audio.masterVolume, audio.chimeVolume]);
 
   const endSession = useCallback(() => {
     session.setPhase('ending');
@@ -87,6 +90,7 @@ export function useSession() {
     const entry: SessionLogEntry = {
       id: sessionIdRef.current,
       date: new Date().toISOString(),
+      therapyMode: session.therapyMode,
       userColor: session.userColor!,
       shapeType: session.shapeType!,
       durationMinutes: session.durationMinutes,
@@ -97,7 +101,7 @@ export function useSession() {
     log.addSession(entry);
 
     session.setPhase('feedback');
-  }, [session.userColor, session.shapeType, session.durationMinutes, session.toneMode]);
+  }, [session.therapyMode, session.userColor, session.shapeType, session.durationMinutes, session.toneMode]);
 
   // Keep endSessionRef up to date so the timer tick always calls the latest endSession
   useEffect(() => {
@@ -117,6 +121,7 @@ export function useSession() {
     const entry: SessionLogEntry = {
       id: sessionIdRef.current || crypto.randomUUID(),
       date: new Date().toISOString(),
+      therapyMode: session.therapyMode,
       userColor: session.userColor!,
       shapeType: session.shapeType!,
       durationMinutes: session.durationMinutes,
@@ -127,19 +132,19 @@ export function useSession() {
     log.addSession(entry);
 
     session.setPhase('feedback');
-  }, [session.userColor, session.shapeType, session.durationMinutes, session.toneMode]);
+  }, [session.therapyMode, session.userColor, session.shapeType, session.durationMinutes, session.toneMode]);
 
   const submitFeedback = useCallback((feedback: FeedbackRating) => {
     if (sessionIdRef.current) {
       log.setFeedback(sessionIdRef.current, feedback);
     }
-    // Go back to color pick for next session
-    session.setPhase('colorPick');
+    // Go back to mode pick for next session
+    session.setPhase('modePick');
     session.setElapsed(0);
   }, []);
 
   const skipFeedback = useCallback(() => {
-    session.setPhase('colorPick');
+    session.setPhase('modePick');
     session.setElapsed(0);
   }, []);
 

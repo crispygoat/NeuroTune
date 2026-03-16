@@ -1,16 +1,19 @@
 import { fadeIn, fadeOut } from './FadeController';
 import { SAFETY } from '../constants/safety';
+import type { PadConfig } from '../types/audio';
 
 /**
- * AmbientPadNode — Musical 40Hz entrainment
+ * AmbientPadNode — Configurable musical entrainment pad
  *
- * Instead of a raw carrier + beat, this creates a warm ambient pad chord
- * with the 40Hz binaural beat woven into the harmonic structure.
+ * Creates a warm ambient pad chord with a binaural beat woven
+ * into the harmonic structure. Frequency configuration is driven
+ * by PadConfig so both 40 Hz (gamma) and 528 Hz (Solfeggio) modes
+ * use the same synthesis engine.
  *
  * Layers:
- * 1. Pad chord (3 detuned voices) — warm, atmospheric
+ * 1. Pad chord (detuned voices) — warm, atmospheric
  * 2. Sub-bass drone — deep foundation
- * 3. Subtle 40Hz binaural beat — embedded at low volume
+ * 3. Binaural beat — embedded at low volume
  * 4. Gentle LFO on filter — slow movement (breathing feel)
  */
 export class AmbientPadNode {
@@ -37,7 +40,7 @@ export class AmbientPadNode {
     this.outputGain.connect(destination);
   }
 
-  start(volume: number): void {
+  start(volume: number, config: PadConfig): void {
     this.stop();
     const ctx = this.ctx;
     const now = ctx.currentTime;
@@ -45,37 +48,31 @@ export class AmbientPadNode {
     // === Filter for warmth ===
     this.filter = ctx.createBiquadFilter();
     this.filter.type = 'lowpass';
-    this.filter.frequency.value = 800;
+    this.filter.frequency.value = config.filterCutoff;
     this.filter.Q.value = 0.7;
     this.filter.connect(this.outputGain);
 
     // Slow LFO on filter cutoff — breathing movement
     this.filterLfo = ctx.createOscillator();
     this.filterLfo.type = 'sine';
-    this.filterLfo.frequency.value = 0.08; // ~12s cycle
+    this.filterLfo.frequency.value = config.filterLfoHz;
     this.filterLfoGain = ctx.createGain();
-    this.filterLfoGain.gain.value = 300; // ±300Hz sweep
+    this.filterLfoGain.gain.value = config.lfoDepth;
     this.filterLfo.connect(this.filterLfoGain);
     this.filterLfoGain.connect(this.filter.frequency);
     this.filterLfo.start(now);
 
-    // === Pad chord: C3, E3, G3 with slight detune ===
-    const padFreqs = [
-      130.81,  // C3
-      164.81,  // E3
-      196.00,  // G3
-    ];
-
-    for (const freq of padFreqs) {
+    // === Pad chord with slight detune ===
+    for (const freq of config.padFreqs) {
       // Each voice = 2 slightly detuned oscillators for thickness
       for (let detune = -4; detune <= 4; detune += 8) {
         const osc = ctx.createOscillator();
-        osc.type = 'sine'; // Pure and warm
+        osc.type = 'sine';
         osc.frequency.value = freq;
         osc.detune.value = detune + (Math.random() - 0.5) * 2;
 
         const gain = ctx.createGain();
-        gain.gain.value = 0.08; // Quiet per voice
+        gain.gain.value = config.padGain;
 
         osc.connect(gain);
         gain.connect(this.filter);
@@ -86,30 +83,29 @@ export class AmbientPadNode {
       }
     }
 
-    // === Sub-bass drone (very low, felt more than heard) ===
+    // === Sub-bass drone ===
     this.subOsc = ctx.createOscillator();
     this.subOsc.type = 'sine';
-    this.subOsc.frequency.value = 65.41; // C2
+    this.subOsc.frequency.value = config.subFreq;
     this.subGain = ctx.createGain();
-    this.subGain.gain.value = 0.06;
+    this.subGain.gain.value = config.subGain;
     this.subOsc.connect(this.subGain);
     this.subGain.connect(this.filter);
     this.subOsc.start(now);
 
-    // === Embedded 40Hz binaural beat (subtle, underneath everything) ===
+    // === Embedded binaural beat ===
     this.binMerger = ctx.createChannelMerger(2);
     this.binGain = ctx.createGain();
-    this.binGain.gain.value = 0.03; // Very quiet — just enough for entrainment
+    this.binGain.gain.value = config.binGain;
 
-    const binCarrier = 200; // Low carrier for warmth
+    const halfBeat = config.binauralBeatHz / 2;
     this.binLeftOsc = ctx.createOscillator();
     this.binLeftOsc.type = 'sine';
-    this.binLeftOsc.frequency.value = binCarrier - 20; // 180 Hz
+    this.binLeftOsc.frequency.value = config.binauralCarrier - halfBeat;
 
     this.binRightOsc = ctx.createOscillator();
     this.binRightOsc.type = 'sine';
-    this.binRightOsc.frequency.value = binCarrier + 20; // 220 Hz
-    // Difference = 40Hz binaural beat
+    this.binRightOsc.frequency.value = config.binauralCarrier + halfBeat;
 
     const leftGain = ctx.createGain();
     leftGain.gain.value = 1;
