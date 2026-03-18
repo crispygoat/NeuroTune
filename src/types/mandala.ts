@@ -6,8 +6,9 @@ export interface HSLColor {
 
 export interface MandalaRegion {
   index: number;
-  ring: number;       // 0 = center, 1-3 = concentric rings
+  ring: number;       // 0 = center, 1+ = concentric rings
   segment: number;    // segment index within ring
   path: Path2D;       // pre-computed path for hit-test + render
   fill: HSLColor | null; // null = unfilled
+  centroid: { x: number; y: number }; // precomputed center for labels
 }

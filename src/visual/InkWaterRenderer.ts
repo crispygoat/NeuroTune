@@ -35,6 +35,7 @@ export class InkWaterRenderer {
   private trailRef: TrailPoint[] = [];
   private ripples: Ripple[] = [];
   private mandalaColoring: MandalaColoring | null = null;
+  private hideDecorativeShape = false;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -102,11 +103,12 @@ export class InkWaterRenderer {
 
   // --- Mandala coloring API ---
 
-  enableMandalaColoring(): void {
+  enableMandalaColoring(shapeType: ShapeType): void {
     this.mandalaColoring = new MandalaColoring();
     const w = this.canvas.width;
     const h = this.canvas.height;
-    this.mandalaColoring.generate(w / 2, h / 2, Math.min(w, h) * 0.35);
+    this.mandalaColoring.generate(w / 2, h / 2, Math.min(w, h) * 0.42, shapeType);
+    this.hideDecorativeShape = true;
   }
 
   disableMandalaColoring(): void {
@@ -246,9 +248,9 @@ export class InkWaterRenderer {
     if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
       this.canvas.width = targetW;
       this.canvas.height = targetH;
-      // Regenerate mandala paths for new size (preserves fill state)
+      // Regenerate mandala paths for new size (preserves fill state + shape type)
       if (this.mandalaColoring) {
-        this.mandalaColoring.generate(targetW / 2, targetH / 2, Math.min(targetW, targetH) * 0.35);
+        this.mandalaColoring.regenerate(targetW / 2, targetH / 2, Math.min(targetW, targetH) * 0.42);
       }
     }
 
@@ -298,12 +300,14 @@ export class InkWaterRenderer {
       this.blobs = this.blobs.filter((b, idx) => idx < BLOB_COUNT || !shouldRespawn(b));
     }
 
-    // Render geometric shape
-    const cx = w / 2;
-    const cy = h / 2;
-    const shapeSize = Math.min(w, h) * 0.2;
-    this.shape.update();
-    this.shape.render(ctx, cx, cy, shapeSize, elapsedMs, expansion);
+    // Render geometric shape (hidden when mandala coloring is active)
+    if (!this.hideDecorativeShape) {
+      const cx = w / 2;
+      const cy = h / 2;
+      const shapeSize = Math.min(w, h) * 0.2;
+      this.shape.update();
+      this.shape.render(ctx, cx, cy, shapeSize, elapsedMs, expansion);
+    }
   }
 
   private renderTrails(ctx: CanvasRenderingContext2D, _elapsedMs: number): void {

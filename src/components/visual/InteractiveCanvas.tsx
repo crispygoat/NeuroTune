@@ -60,7 +60,7 @@ export function InteractiveCanvas() {
 
     // Enable mandala coloring for sleep mode
     if (therapyMode === 'sleep') {
-      renderer.enableMandalaColoring();
+      renderer.enableMandalaColoring(shapeType);
       // Pre-select first paint color (Red)
       renderer.setMandalaColor({ h: 355, s: 80, l: 55 });
       setPaintingActive(true);
